@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Recomendador Musical</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.0.0/dist/tf.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    label { display: block; margin: 8px 0; }
+    input { width: 50px; }
+    button { margin-top: 20px; padding: 10px 20px; }
+    #resultado { margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <h1>Calificá las bandas del 1 al 10</h1>
+  <form id="formulario">
+    <!-- Se insertarán inputs dinámicamente -->
+  </form>
+
+  <button onclick="procesar()">Procesar información</button>
+
+  <div id="resultado"></div>
+
+  <script>
+    // Bandas y sus géneros ocultos
+    const bandas = [
+      { nombre: "Nirvana", generos: [1, 1, 0, 0, 0, 0] },          // Grunge, Rock
+      { nombre: "Nine Inch Nails", generos: [1, 0, 1, 0, 0, 0] },  // Grunge, Industrial
+      { nombre: "Backstreet Boys", generos: [0, 0, 0, 1, 1, 0] },  // Boy Band, Dance
+      { nombre: "N Sync", generos: [0, 0, 0, 1, 0, 0] },            // Boy Band
+      { nombre: "Night Club", generos: [0, 0, 1, 0, 0, 1] },        // Industrial, Techno
+      { nombre: "Apashe", generos: [0, 0, 1, 0, 0, 1] },            // Industrial, Techno
+      { nombre: "STP", generos: [1, 1, 0, 0, 0, 0] },               // Grunge, Rock
+    ];
+
+    const estilos = ['Grunge', 'Rock', 'Industrial', 'Boy Band', 'Dance', 'Techno'];
+
+    const form = document.getElementById("formulario");
+
+    // Crear inputs
+    bandas.forEach((banda, i) => {
+      const label = document.createElement("label");
+      label.innerHTML = `
+        ${banda.nombre}:
+        <input type="number" id="banda-${i}" min="1" max="10" required>
+      `;
+      form.appendChild(label);
+    });
+
+    function procesar() {
+      const votos = bandas.map((_, i) => {
+        const val = document.getElementById(`banda-${i}`).value;
+        return parseFloat(val || 0);
+      });
+
+      // Convertir datos a tensores
+      const tf_votos = tf.tensor([votos]); // 1 usuario, varias bandas
+      const tf_bandas = tf.tensor(bandas.map(b => b.generos)); // bandas x estilos
+
+      // Multiplicación: gustos * géneros → perfil de usuario
+      const tf_usuario = tf.matMul(tf_votos, tf_bandas);
+
+      // Ranking de géneros preferidos
+      const topFeatures = tf.topk(tf_usuario, estilos.length);
+      const indices = topFeatures.indices.arraySync()[0];
+
+      const ranking = indices.map(i => estilos[i]);
+
+      // Mostrar resultados
+      const resultado = document.getElementById("resultado");
+      resultado.innerHTML = "<h3>Ranking de estilos musicales según tu gusto:</h3><ol>" +
+        ranking.map(est => `<li>${est}</li>`).join("") +
+        "</ol>";
+    }
+  </script>
+
+</body>
+</html>
